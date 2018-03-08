@@ -74,7 +74,10 @@ class EntityInteraction : public Plugin {
     inline virtual void set_projection(std::shared_ptr<GeographicLib::LocalCartesian> proj)
     { proj_ = proj;}
 
+    bool post_step() {return post_step_;}
+
  protected:
+    bool post_step_ = true;
     std::shared_ptr<GeographicLib::LocalCartesian> proj_;
 
     RandomPtr random_;

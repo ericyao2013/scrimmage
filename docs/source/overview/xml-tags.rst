@@ -23,6 +23,8 @@ and match between the two paradigms for a single entity.
     defines a "best effort." The autonomy logic can and will slow down the
     simulation, but the simulation is guaranteed to run deterministically with
     respect to the ``seed`` XML tag, even if it runs slower than real-time.
+    When ``time_warp`` is set to 0, the simulation will run as fast as possible.
+    Note that ``enable_gui`` is set to 0, ``time_warp`` will be set to 0 as well.
   - ``enable_gui`` : If set to ``true``, the SCRIMMAGE gui will run in parallel
     with the SCRIMMAGE simulation. If ``false``, the gui will not run during
     the simulation.

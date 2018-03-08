@@ -47,28 +47,24 @@ namespace autonomy {
 ExternalControlClient::ExternalControlClient(std::shared_ptr<grpc::Channel> channel) :
     stub_(scrimmage_proto::ExternalControl::NewStub(channel)) {}
 
-bool ExternalControlClient::send_environment(scrimmage_proto::Environment &env) {
-
+bool ExternalControlClient::send_environments(scrimmage_proto::Environments &envs) {
     sp::Empty reply;
     grpc::ClientContext context;
-    grpc::Status status = stub_->SendEnvironment(&context, env, &reply);
+    grpc::Status status = stub_->SendEnvironments(&context, envs, &reply);
     return status.ok();
 }
 
-boost::optional<scrimmage_proto::Action>
-ExternalControlClient::send_action_result(
-        scrimmage_proto::ActionResult &action_result) {
-    sp::Action action;
+boost::optional<scrimmage_proto::Actions>
+ExternalControlClient::send_action_results(
+        scrimmage_proto::ActionResults &action_results) {
+    sp::Actions actions;
     grpc::ClientContext context;
-    grpc::Status status = stub_->SendActionResult(&context, action_result, &action);
+    grpc::Status status = stub_->SendActionResults(&context, action_results, &actions);
     if (!status.ok()) {
         std::cout << "ExternalControlClient received bad grpc status" << std::endl;
         return boost::none;
-    } else if (action.done()) {
-        // std::cout << "ExternalControlClient received done status" << std::endl;
-        return boost::none;
     } else {
-        return boost::optional<sp::Action>(action);
+        return boost::optional<sp::Actions>(actions);
     }
 }
 } // namespace autonomy

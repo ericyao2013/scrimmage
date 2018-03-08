@@ -74,6 +74,7 @@
 #include <GeographicLib/LocalCartesian.hpp>
 
 #include <boost/thread.hpp>
+#include <boost/range/adaptor/filtered.hpp>
 #include <boost/range/adaptor/map.hpp>
 #include <boost/range/algorithm/for_each.hpp>
 
@@ -598,13 +599,16 @@ bool SimControl::run_networks() {
     return all_true;
 }
 
-bool SimControl::run_interaction_detection() {
+bool SimControl::run_interaction_detection(bool post_step) {
+
+    auto should_run = [&](auto &ent_inter){return ent_inter->post_step() == post_step;};
+    auto inters = ent_inters_ | ba::filtered(should_run);
 
     auto run_interaction = [&](auto ent_inter) {
         bool result = ent_inter->step_entity_interaction(ents_, t_, dt_);
         if (!result) {
             cout << "Entity interaction requested simulation termination: "
-                 << ent_inter->name() << endl;
+                 << ent_inter->name() << " at time " << t_ << endl;
         }
         return result;
     };
@@ -697,12 +701,14 @@ void SimControl::run() {
 
         create_rtree();
         set_autonomy_contacts();
+
+        end_condition_interaction = run_interaction_detection(false);
         if (!run_entities()) {
             std::cout << "Exiting due to plugin request." << std::endl;
             break;
         }
+        end_condition_interaction |= run_interaction_detection(true);
 
-        end_condition_interaction = run_interaction_detection();
         if (!end_condition_interaction) {
             auto msg = std::make_shared<Message<sm::EntityInteractionExit>>();
             pub_ent_int_exit_->publish(msg);

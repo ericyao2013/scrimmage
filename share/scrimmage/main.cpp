@@ -67,10 +67,13 @@ using std::endl;
 namespace sc = scrimmage;
 
 sc::SimControl simcontrol;
+bool output_nothing;
 
 // Handle kill signal
 void HandleSignal(int s) {
-    cout << endl << "Exiting gracefully" << endl;
+    if (!output_nothing) {
+        cout << endl << "Exiting gracefully" << endl;
+    }
     simcontrol.force_exit();
 }
 
@@ -148,7 +151,7 @@ int main(int argc, char *argv[]) {
     bool output_git = should_log("git_commits");
     bool output_mission = should_log("mission");
     bool output_seed = should_log("seed");
-    bool output_nothing =
+    output_nothing =
         !output_all && !output_frames && !output_summary &&
         !output_git && !output_mission && !output_seed;
 
@@ -343,6 +346,8 @@ int main(int argc, char *argv[]) {
     // Close the log file
     log->close_log();
 
-    cout << "Simulation Complete" << endl;
+    if (!output_nothing) {
+        cout << "Simulation Complete" << endl;
+    }
     return 0;
 }

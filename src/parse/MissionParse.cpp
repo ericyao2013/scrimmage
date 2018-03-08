@@ -114,6 +114,12 @@ bool MissionParse::parse(const std::string &filename) {
         }
     }
 
+#if ENABLE_VIEWER == 0
+    time_warp_ = 0;
+#else
+    if (!enable_gui_) time_warp_ = 0;
+#endif
+
     // Parse entity_interaction tags
     for (rapidxml::xml_node<> *node = runscript_node->first_node("entity_interaction");
          node != 0; node = node->next_sibling("entity_interaction")) {

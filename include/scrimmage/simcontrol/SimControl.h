@@ -215,7 +215,7 @@ class SimControl {
     void run_autonomy();
     void set_autonomy_contacts();
     void run_dynamics();
-    bool run_interaction_detection();
+    bool run_interaction_detection(bool post_step);
     bool run_logging();
     bool run_metrics();
     void run_remove_inactive();

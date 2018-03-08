@@ -30,6 +30,9 @@
  *
  */
 
+#include <scrimmage/common/Utilities.h>
+#include <scrimmage/math/State.h>
+#include <scrimmage/entity/Entity.h>
 #include <scrimmage/parse/ParseUtils.h>
 #include <scrimmage/plugin_manager/RegisterPlugin.h>
 #include <scrimmage/plugins/controller/JSBSimModelControllerDirect/JSBSimModelControllerDirect.h>
@@ -37,6 +40,8 @@
 #include <boost/algorithm/clamp.hpp>
 
 REGISTER_PLUGIN(scrimmage::Controller, scrimmage::controller::JSBSimModelControllerDirect, JSBSimModelControllerDirect_plugin)
+
+using ang = scrimmage::Angles;
 
 namespace scrimmage {
 namespace controller {
