@@ -146,6 +146,7 @@ class External {
                 auto sub = std::dynamic_pointer_cast<SubscriberBase>(dev);
                 return [=](const boost::shared_ptr<RosType const> &ros_msg) {
                     using ScType = decltype(ros2sc(*ros_msg));
+                    call_update_contacts(ros::Time::now().toSec());
                     auto sc_msg = std::make_shared<Message<ScType>>(ros2sc(*ros_msg));
                     sub->add_msg(sc_msg);
                     sub->accept(sc_msg);
