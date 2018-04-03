@@ -148,17 +148,22 @@ class External {
             for (NetworkDevicePtr dev : *subs) {
                 auto sub = std::dynamic_pointer_cast<SubscriberBase>(dev);
                 return [=](const boost::shared_ptr<RosType const> &ros_msg) {
-                    mutex.lock();
                     if (topic_name == "BidAuction") {
                         std::cout << "in cb for BidAuction " << std::endl;
                     }
                     using ScType = decltype(ros2sc(*ros_msg));
+                    std::cout << "about to call call_update_contacts" << std::endl;
                     call_update_contacts(ros::Time::now().toSec());
+                    std::cout << "done to calling call_update_contacts" << std::endl;
+                    mutex.lock();
+                    std::cout << "locked" << std::endl;
                     auto sc_msg = std::make_shared<Message<ScType>>(ros2sc(*ros_msg));
                     sub->add_msg(sc_msg);
                     sub->accept(sc_msg);
                     send_messages();
+                    std::cout << "unlocking" << std::endl;
                     mutex.unlock();
+                    std::cout << "done unlocking" << std::endl;
                 };
             }
         }
