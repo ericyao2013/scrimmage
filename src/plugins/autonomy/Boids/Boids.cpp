@@ -220,7 +220,7 @@ bool Boids::step_autonomy(double t, double dt) {
         velocity_controller(vel_result);
 
         if (show_shapes_) {
-            sc::ShapePtr shape(new scrimmage_proto::Shape);
+            auto shape = std::make_shared<scrimmage_proto::Shape>();
             shape->set_type(scrimmage_proto::Shape::Sphere);
             shape->set_opacity(0.1);
             shape->set_radius(sphere_of_influence_);
@@ -229,7 +229,7 @@ bool Boids::step_autonomy(double t, double dt) {
             shapes_.push_back(shape);
 
             // Draw resultant vector:
-            sc::ShapePtr arrow(new scrimmage_proto::Shape);
+            auto arrow = std::make_shared<scrimmage_proto::Shape>();
             arrow->set_type(scrimmage_proto::Shape::Line);
             sc::set(arrow->mutable_color(), 255, 255, 0);
             arrow->set_opacity(0.75);

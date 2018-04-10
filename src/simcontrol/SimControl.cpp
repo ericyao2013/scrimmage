@@ -47,6 +47,7 @@
 #include <scrimmage/motion/MotionModel.h>
 #include <scrimmage/motion/Controller.h>
 #include <scrimmage/simcontrol/SimControl.h>
+#include <scrimmage/simcontrol/SimUtils.h>
 #include <scrimmage/simcontrol/EntityInteraction.h>
 #include <scrimmage/parse/ConfigParse.h>
 #include <scrimmage/parse/ParseUtils.h>
@@ -256,7 +257,7 @@ bool SimControl::init() {
     for (auto &kv : mp_->team_info()) {
         int i = 0;
         for (Eigen::Vector3d &base_pos : kv.second.bases) {
-            ShapePtr base = std::make_shared<scrimmage_proto::Shape>();
+            auto base = std::make_shared<scrimmage_proto::Shape>();
             base->set_type(scrimmage_proto::Shape::Sphere);
             base->set_opacity(kv.second.opacities[i]);
             sc::set(base->mutable_center(), base_pos);
@@ -279,62 +280,13 @@ bool SimControl::init() {
     pub_one_team_ = sim_plugin_->advertise("GlobalNetwork", "OneTeamPresent");
 
     // Get the list of "metrics" plugins
-    for (std::string metrics_name : mp_->metrics()) {
-        ConfigParse config_parse;
-        std::map<std::string, std::string> &overrides =
-            mp_->attributes()[metrics_name];
-        MetricsPtr metrics =
-            std::dynamic_pointer_cast<Metrics>(
-                plugin_manager_->make_plugin(
-                    "scrimmage::Metrics", metrics_name,
-                    *file_search_, config_parse, overrides));
-
-        if (metrics != nullptr) {
-            metrics->set_id_to_team_map(id_to_team_map_);
-            metrics->set_id_to_ent_map(id_to_ent_map_);
-            metrics->set_pubsub(pubsub_);
-            metrics->set_time(time_);
-            metrics->set_name(metrics_name);
-            metrics->init(config_parse.params());
-            metrics_.push_back(metrics);
-        } else {
-            cout << "Failed to load metrics: " << metrics_name << endl;
-            continue;
-        }
+    if (!create_metrics(mp_, plugin_manager_, file_search_, pubsub_, time_, id_to_team_map_, id_to_ent_map_, metrics_)) {
+        return false;
     }
-
     // Get the list of "entity_interaction" plugins
-    for (std::string ent_inter_name : mp_->entity_interactions()) {
-        ConfigParse config_parse;
-        std::map<std::string, std::string> &overrides =
-            mp_->attributes()[ent_inter_name];
-        EntityInteractionPtr ent_inter =
-            std::dynamic_pointer_cast<EntityInteraction>(
-                plugin_manager_->make_plugin("scrimmage::EntityInteraction",
-                                             ent_inter_name, *file_search_,
-                                             config_parse, overrides));
-
-        if (ent_inter == nullptr) {
-            cout << "Failed to load entity interaction plugin: "
-                 << ent_inter_name << endl;
-            continue;
-        }
-
-        ent_inter->set_random(random_);
-        ent_inter->set_mission_parse(mp_);
-        ent_inter->set_projection(proj_);
-        ent_inter->set_pubsub(pubsub_);
-        ent_inter->set_time(time_);
-        ent_inter->set_id_to_team_map(id_to_team_map_);
-        ent_inter->set_id_to_ent_map(id_to_ent_map_);
-        ent_inter->set_name(ent_inter_name);
-        ent_inter->init(mp_->params(), config_parse.params());
-
-        // Get shapes from plugin
-        shapes_[0].insert(shapes_[0].end(), ent_inter->shapes().begin(), ent_inter->shapes().end());
-        ent_inter->shapes().clear();
-
-        ent_inters_.push_back(ent_inter);
+    if (!create_ent_inters(mp_, plugin_manager_, file_search_, random_, pubsub_, time_, id_to_team_map_,
+                           id_to_ent_map_, shapes_[0], ent_inters_)) {
+        return false;
     }
 
     contacts_mutex_.lock();
@@ -644,8 +596,6 @@ bool SimControl::run_networks() {
 
 bool SimControl::run_interaction_detection() {
 
-    auto handle_callbacks = [&](auto ent_inter) {ent_inter->run_callbacks();};
-
     auto run_interaction = [&](auto ent_inter) {
         bool result = ent_inter->step_entity_interaction(ents_, t_, dt_);
         if (!result) {
@@ -661,7 +611,7 @@ bool SimControl::run_interaction_detection() {
         ent_inter->shapes().clear();
     };
 
-    br::for_each(ent_inters_, handle_callbacks);
+    br::for_each(ent_inters_, run_callbacks);
     bool success = std::all_of(ent_inters_.begin(), ent_inters_.end(), run_interaction);
     br::for_each(ent_inters_, handle_shapes);
 
@@ -689,14 +639,9 @@ bool SimControl::run_interaction_detection() {
 }
 
 bool SimControl::run_metrics() {
-    bool all_true = true;
-    for (MetricsPtr &metric : metrics_) {
-        // Execute callbacks for received messages before calling
-        // metrics
-        metric->run_callbacks();
-        all_true &= metric->step_metrics(t_, dt_);
-    }
-    return all_true;
+    br::for_each(metrics_, run_callbacks);
+    auto run_metric = [&](auto &metric) {return metric->step_metrics(t_, dt_);};
+    return std::all_of(metrics_.begin(), metrics_.end(), run_metric);
 }
 
 bool SimControl::run_logging() {
@@ -1165,13 +1110,10 @@ void SimControl::worker() {
             entity_pool_queue_.pop_front();
             entity_pool_mutex_.unlock();
 
-            bool success = true;
-            for (AutonomyPtr &autonomy : ent->autonomies()) {
-                // Execute callbacks for received messages before calling
-                // step_autonomy
-                autonomy->run_callbacks();
-                success &= autonomy->step_autonomy(t_, dt_);
-            }
+            auto &autonomies = ent->autonomies();
+            br::for_each(autonomies, run_callbacks);
+            auto run = [&](auto &autonomy) {return autonomy->step_autonomy(t_, dt_);};
+            bool success = std::all_of(autonomies.begin(), autonomies.end(), run);
 
             entity_pool_mutex_.lock();
             task->prom.set_value(success);
@@ -1219,7 +1161,7 @@ bool SimControl::run_entities() {
             for (AutonomyPtr &a : ent->autonomies()) {
                 // Execute callbacks for received messages before calling
                 // step_autonomy
-                a->run_callbacks();
+                run_callbacks(a);
                 if (!a->step_autonomy(t_, dt_)) {
                     print_err(a);
                     success = false;
@@ -1233,11 +1175,11 @@ bool SimControl::run_entities() {
     for (int i = 0; i < mp_->motion_multiplier(); i++) {
         // Run each entity's controllers
         for (EntityPtr &ent : ents_) {
-            std::list<ShapePtr> &shapes = shapes_[ent->id().id()];
+            auto &shapes = shapes_[ent->id().id()];
             for (ControllerPtr &ctrl : ent->controllers()) {
                 // Execute callbacks for received messages before calling
                 // controllers
-                ctrl->run_callbacks();
+                run_callbacks(ctrl);
                 if (!ctrl->step(temp_t, motion_dt)) {
                     print_err(ctrl);
                     success = false;
@@ -1250,11 +1192,11 @@ bool SimControl::run_entities() {
 
         // Run each entity's motion model
         for (EntityPtr &ent : ents_) {
-            std::list<ShapePtr> &shapes = shapes_[ent->id().id()];
+            auto &shapes = shapes_[ent->id().id()];
 
             // Execute callbacks for received messages before calling
             // motion models
-            ent->motion()->run_callbacks();
+            run_callbacks(ent->motion());
             if (!ent->motion()->step(temp_t, motion_dt)) {
                 print_err(ent->motion());
                 success = false;
@@ -1267,9 +1209,7 @@ bool SimControl::run_entities() {
     }
 
     for (EntityPtr &ent : ents_) {
-        for (auto &sensor : ent->sensors() | ba::map_values) {
-            sensor->run_callbacks();
-        }
+        br::for_each(ent->sensors() | ba::map_values, run_callbacks);
     }
 
     for (EntityPtr &ent : ents_) {
@@ -1287,7 +1227,7 @@ bool SimControl::run_entities() {
     contacts_mutex_.unlock();
 
     for (EntityPtr &ent : ents_) {
-        std::list<ShapePtr> &shapes = shapes_[ent->id().id()];
+        auto &shapes = shapes_[ent->id().id()];
         for (AutonomyPtr &autonomy : ent->autonomies()) {
             shapes.insert(shapes.end(), autonomy->shapes().begin(),
                           autonomy->shapes().end());

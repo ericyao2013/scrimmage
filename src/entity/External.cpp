@@ -37,11 +37,14 @@
 #include <scrimmage/common/Time.h>
 #include <scrimmage/entity/External.h>
 #include <scrimmage/log/Log.h>
+#include <scrimmage/metrics/Metrics.h>
 #include <scrimmage/motion/Controller.h>
 #include <scrimmage/parse/MissionParse.h>
 #include <scrimmage/parse/ParseUtils.h>
 #include <scrimmage/plugin_manager/PluginManager.h>
 #include <scrimmage/pubsub/Network.h>
+#include <scrimmage/simcontrol/SimUtils.h>
+#include <scrimmage/simcontrol/EntityInteraction.h>
 
 #include <iostream>
 
@@ -51,11 +54,13 @@
 #include <boost/range/adaptor/map.hpp>
 #include <boost/range/adaptor/filtered.hpp>
 #include <boost/range/adaptor/transformed.hpp>
+#include <boost/range/algorithm/for_each.hpp>
 
 using std::endl;
 using std::cout;
 
 namespace ba = boost::adaptors;
+namespace br = boost::range;
 
 namespace scrimmage {
 
@@ -69,11 +74,13 @@ External::External() :
     mp_(std::make_shared<MissionParse>()) {
 }
 
+
 bool External::create_entity(int max_entities, int entity_id,
                              const std::string &entity_name) {
 
     if (mp_->get_mission_filename() == "") {
-        cout << "External::mp()->parse() has not been run yet, exiting External::create_entity()" << endl;
+        cout << "External::mp()->parse() has not been run yet, "
+            << "exiting External::create_entity()" << endl;
         return false;
     }
 
@@ -95,7 +102,15 @@ bool External::create_entity(int max_entities, int entity_id,
     // Load the network names (don't need to load the network plugins)
     for (std::string network_name : mp_->network_names()) {
         // Seed the pubsub with network names
-        pubsub_->add_network_name(network_name);
+        std::string aliased_name = network_name;
+        auto it = mp_->attributes().find(network_name);
+        if (it != mp_->attributes().end()) {
+            auto it2 = it->second.find("name");
+            if (it2 != it->second.end()) {
+                aliased_name = it2->second;
+            }
+        }
+        pubsub_->add_network_name(aliased_name);
     }
 
     std::map<std::string, std::string> info =
@@ -123,13 +138,25 @@ bool External::create_entity(int max_entities, int entity_id,
     entity_->set_random(random);
 
     AttributeMap &attr_map = mp_->entity_attributes()[it_name_id->second];
-    bool success =
+    bool ent_success =
         entity_->init(
             attr_map, info, contacts, mp_, mp_->projection(), entity_id,
             it_name_id->second, plugin_manager_, file_search, rtree, pubsub_,
             time_);
 
-    return success;
+    std::shared_ptr<std::unordered_map<int, int>> id_to_team_map {};
+    std::shared_ptr<std::unordered_map<int, EntityPtr>> id_to_ent_map {};
+    std::list<scrimmage_proto::ShapePtr> shapes;
+
+    bool metrics_success = create_metrics(
+        mp_, plugin_manager_, file_search, pubsub_, time_,
+        id_to_team_map, id_to_ent_map, metrics_);
+
+    bool ent_inters_success = create_ent_inters(
+        mp_, plugin_manager_, file_search, random, pubsub_, time_,
+        id_to_team_map, id_to_ent_map, shapes, ent_inters_);
+
+    return ent_success && metrics_success && ent_inters_success;
 }
 
 bool External::step(double t) {
@@ -143,10 +170,11 @@ bool External::step(double t) {
     this->call_update_contacts(t);
 
     mutex.lock();
-    // do all the scrimmage updates (e.g., step_autonomy, step controller, etc)
-    // incorporating motion_dt_
+
+    ////////////////////////////////////////////////////////////
+    // run main loops of plugins
+    ////////////////////////////////////////////////////////////
     for (AutonomyPtr autonomy : entity_->autonomies()) {
-        autonomy->run_callbacks();
         autonomy->step_autonomy(t, dt);
     }
 
@@ -157,30 +185,41 @@ bool External::step(double t) {
     double temp_t = t - dt;
     for (int i = 0; i < num_steps; i++) {
         for (ControllerPtr &ctrl : entity_->controllers()) {
-            ctrl->run_callbacks();
             ctrl->step(temp_t, motion_dt);
         }
         temp_t += motion_dt;
     }
 
-    // do logging
-    log_->save_frame(create_frame(t, entity_->contacts()));
+    if (!ent_inters_.empty()) {
+        auto ents = contacts_to_ents(entity_->contacts());
+        if (adjust_ents_func) {
+            adjust_ents_func(ents);
+        }
+        for (EntityInteractionPtr ent_inter : ent_inters_) {
+            ent_inter->step_entity_interaction(ents, t, dt);
+        }
+    }
+
+    for (MetricsPtr metrics : metrics_) {
+        metrics->step_metrics(t, dt);
+    }
 
     send_messages();
 
     // shapes
     scrimmage_proto::Shapes shapes;
     shapes.set_time(t);
-    for (AutonomyPtr autonomy : entity_->autonomies()) {
-        for (auto autonomy_shape : autonomy->shapes()) {
-            // increase length of shapes by 1 (including mallocing a new object)
-            // return a pointer to the malloced object
-            scrimmage_proto::Shape *shape_at_end_of_shapes = shapes.add_shape();
+    auto add_shapes = [&](auto p) {
+        auto add_shape = [&](auto &shape) {*shapes.add_shape() = *shape;};
+        br::for_each(p->shapes(), add_shape);
+    };
 
-            // copy autonomy shape to list
-            *shape_at_end_of_shapes = *autonomy_shape;
-        }
-    }
+    br::for_each(entity_->autonomies(), add_shapes);
+    br::for_each(entity_->controllers(), add_shapes);
+    br::for_each(ent_inters_, add_shapes);
+    br::for_each(metrics_, add_shapes);
+
+    log_->save_frame(create_frame(t, entity_->contacts()));
     log_->save_shapes(shapes);
 
     mutex.unlock();
@@ -203,6 +242,7 @@ void External::send_messages() {
                             ba::transformed(to_publisher) |
                             ba::filtered(has_callback)) {
                 for (auto msg : pub->pop_msgs()) {
+                    std::cout << "sending message on topic " << pub->get_topic() << std::endl;
                     pub->callback(msg);
                 }
             }
@@ -225,5 +265,17 @@ void External::call_update_contacts(double t) {
 
 MissionParsePtr External::mp() {
     return mp_;
+}
+
+std::list<EntityPtr> contacts_to_ents(ContactMapPtr contacts) {
+    std::list<EntityPtr> ents;
+
+    for (auto &kv : *contacts) {
+        auto ent = std::make_shared<Entity>();
+        ent->id() = kv.second.id();
+        ent->state() = kv.second.state();
+        ents.push_back(ent);
+    }
+    return ents;
 }
 } // namespace scrimmage
