@@ -117,8 +117,8 @@ RUN /bin/bash -c "source /opt/ros/kinetic/setup.bash && \
     catkin_make && \
     source devel/setup.bash && \
     source ~/.scrimmage/setup.bash && \
-    cd build &&
-    make tests &&
+    cd build && \
+    make tests && \
     make test"
 
 # install python package and run tests
