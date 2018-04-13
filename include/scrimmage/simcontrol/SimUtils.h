@@ -41,25 +41,23 @@
 
 namespace scrimmage {
 
-bool create_ent_inters(MissionParsePtr mp,
-                       PluginManagerPtr plugin_manager,
-                       FileSearchPtr file_search,
-                       RandomPtr random,
-                       PubSubPtr pubsub,
-                       TimePtr time,
-                       std::shared_ptr<std::unordered_map<int, int>> id_to_team_map,
-                       std::shared_ptr<std::unordered_map<int, EntityPtr>> id_to_ent_map,
+struct SimUtilsInfo {
+    MissionParsePtr mp;
+    PluginManagerPtr plugin_manager;
+    FileSearchPtr file_search;
+    RTreePtr rtree;
+    PubSubPtr pubsub;
+    TimePtr time;
+    std::shared_ptr<std::unordered_map<int, int>> id_to_team_map;
+    std::shared_ptr<std::unordered_map<int, EntityPtr>> id_to_ent_map;
+};
+
+bool create_ent_inters(const SimUtilsInfo &info,
+                       const RandomPtr random,
                        std::list<scrimmage_proto::ShapePtr> &shapes,
                        std::list<EntityInteractionPtr> &ent_inters);
 
-bool create_metrics(MissionParsePtr mp,
-                    PluginManagerPtr plugin_manager,
-                    FileSearchPtr file_search,
-                    PubSubPtr pubsub,
-                    TimePtr time,
-                    std::shared_ptr<std::unordered_map<int, int>> id_to_team_map,
-                    std::shared_ptr<std::unordered_map<int, EntityPtr>> id_to_ent_map,
-                    std::list<MetricsPtr> &metrics_list);
+bool create_metrics(const SimUtilsInfo &info, std::list<MetricsPtr> &metrics_list);
 
 void run_callbacks(PluginPtr plugin);
 

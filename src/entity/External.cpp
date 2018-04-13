@@ -148,13 +148,18 @@ bool External::create_entity(int max_entities, int entity_id,
     std::shared_ptr<std::unordered_map<int, EntityPtr>> id_to_ent_map {};
     std::list<scrimmage_proto::ShapePtr> shapes;
 
-    bool metrics_success = create_metrics(
-        mp_, plugin_manager_, file_search, pubsub_, time_,
-        id_to_team_map, id_to_ent_map, metrics_);
+    SimUtilsInfo sim_info;
+    sim_info.mp = mp_;
+    sim_info.plugin_manager = plugin_manager_;
+    sim_info.file_search = file_search;
+    sim_info.rtree = rtree;
+    sim_info.pubsub = pubsub_;
+    sim_info.time = time_;
+    sim_info.id_to_team_map = id_to_team_map;
+    sim_info.id_to_ent_map = id_to_ent_map;
 
-    bool ent_inters_success = create_ent_inters(
-        mp_, plugin_manager_, file_search, random, pubsub_, time_,
-        id_to_team_map, id_to_ent_map, shapes, ent_inters_);
+    bool metrics_success = create_metrics(sim_info, metrics_);
+    bool ent_inters_success = create_ent_inters(sim_info, random, shapes, ent_inters_);
 
     return ent_success && metrics_success && ent_inters_success;
 }

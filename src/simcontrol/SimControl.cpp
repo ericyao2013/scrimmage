@@ -280,14 +280,18 @@ bool SimControl::init() {
     pub_one_team_ = sim_plugin_->advertise("GlobalNetwork", "OneTeamPresent");
 
     // Get the list of "metrics" plugins
-    if (!create_metrics(mp_, plugin_manager_, file_search_, pubsub_, time_, id_to_team_map_, id_to_ent_map_, metrics_)) {
-        return false;
-    }
-    // Get the list of "entity_interaction" plugins
-    if (!create_ent_inters(mp_, plugin_manager_, file_search_, random_, pubsub_, time_, id_to_team_map_,
-                           id_to_ent_map_, shapes_[0], ent_inters_)) {
-        return false;
-    }
+    SimUtilsInfo info;
+    info.mp = mp_;
+    info.plugin_manager = plugin_manager_;
+    info.file_search = file_search_;
+    info.rtree = rtree_;
+    info.pubsub = pubsub_;
+    info.time = time_;
+    info.id_to_team_map = id_to_team_map_;
+    info.id_to_ent_map = id_to_ent_map_;
+
+    if (!create_metrics(info, metrics_)) return false;
+    if (!create_ent_inters(info, random_, shapes_[0], ent_inters_)) return false;
 
     contacts_mutex_.lock();
     contacts_->reserve(max_num_entities+1);
