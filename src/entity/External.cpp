@@ -115,6 +115,7 @@ bool External::create_entity(int max_entities, int entity_id,
 
     std::map<std::string, std::string> info =
         mp_->entity_descriptions()[it_name_id->second];
+    info.erase("motion_model"); // we don't need to initialize this
 
     ContactMapPtr contacts = std::make_shared<ContactMap>();
     std::shared_ptr<RTree> rtree = std::make_shared<RTree>();
@@ -122,16 +123,6 @@ bool External::create_entity(int max_entities, int entity_id,
 
     FileSearchPtr file_search = std::make_shared<FileSearch>();
     entity_ = std::make_shared<Entity>();
-
-    std::string output_type = get("output_type", mp_->params(), std::string("all"));
-
-    mp_->create_log_dir();
-    bool enable_log =
-        output_type.find("all") != std::string::npos ||
-        output_type.find("frames") != std::string::npos;
-
-    log_->set_enable_log(enable_log);
-    log_->init(mp_->log_dir(), Log::WRITE);
 
     RandomPtr random = std::make_shared<Random>();
     random->seed();
@@ -143,6 +134,10 @@ bool External::create_entity(int max_entities, int entity_id,
             attr_map, info, contacts, mp_, mp_->projection(), entity_id,
             it_name_id->second, plugin_manager_, file_search, rtree, pubsub_,
             time_);
+    if (!ent_success) {
+        std::cout << "External::create_entity() failed on entity_->init()" << std::endl;
+        return false;
+    }
 
     std::shared_ptr<std::unordered_map<int, int>> id_to_team_map {};
     std::shared_ptr<std::unordered_map<int, EntityPtr>> id_to_ent_map {};
@@ -158,10 +153,31 @@ bool External::create_entity(int max_entities, int entity_id,
     sim_info.id_to_team_map = id_to_team_map;
     sim_info.id_to_ent_map = id_to_ent_map;
 
-    bool metrics_success = create_metrics(sim_info, metrics_);
-    bool ent_inters_success = create_ent_inters(sim_info, random, shapes, ent_inters_);
+    metrics_.clear();
+    if (!create_metrics(sim_info, metrics_)) {
+        std::cout << "External::create_entity() failed on create_metrics()" << std::endl;
+        return false;
+    }
 
-    return ent_success && metrics_success && ent_inters_success;
+    ent_inters_.clear();
+    if (!create_ent_inters(sim_info, random, shapes, ent_inters_)) {
+        std::cout << "External::create_entity() failed on create_ent_inters()" << std::endl;
+        return false;
+    }
+
+    return true;
+}
+
+void External::setup_logging() {
+    std::string output_type = get("output_type", mp_->params(), std::string("all"));
+
+    mp_->create_log_dir();
+    bool enable_log =
+        output_type.find("all") != std::string::npos ||
+        output_type.find("frames") != std::string::npos;
+
+    log_->set_enable_log(enable_log);
+    log_->init(mp_->log_dir(), Log::WRITE);
 }
 
 bool External::step(double t) {

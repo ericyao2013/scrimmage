@@ -63,6 +63,7 @@ class External {
  public:
     External();
     EntityPtr &entity();
+    void setup_logging();
     bool create_entity(int max_entities, int entity_id,
                        const std::string &entity_name);
 
