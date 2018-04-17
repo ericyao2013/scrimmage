@@ -439,7 +439,10 @@ void Entity::setup_desired_state() {
 
     auto it = std::find_if(autonomies_.rbegin(), autonomies_.rend(),
         [&](auto autonomy) {return autonomy->get_is_controlling();});
-    controller_->set_desired_state((*it)->desired_state());
+
+    if (it != autonomies_.rend()) {
+        controller_->set_desired_state((*it)->desired_state());
+    }
 }
 
 std::unordered_map<std::string, Service> &Entity::services() {return services_;}
