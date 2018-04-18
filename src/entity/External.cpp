@@ -139,7 +139,10 @@ bool External::create_entity(int max_entities, int entity_id,
     if (!ent_success) {
         std::cout << "External::create_entity() failed on entity_->init()" << std::endl;
         return false;
-    } else if (!verify_io_connection(entity_->controller()->vars(), vars)) {
+    } 
+    
+    connect(entity_->controller()->vars(), vars);
+    if (!verify_io_connection(entity_->controller()->vars(), vars)) {
         auto ctrl = entity_->controller();
         std::cout << "VariableIO Error: "
             << ctrl->name()
