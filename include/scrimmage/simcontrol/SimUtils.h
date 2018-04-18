@@ -54,7 +54,7 @@ struct SimUtilsInfo {
 };
 
 bool create_ent_inters(const SimUtilsInfo &info,
-                       const RandomPtr random,
+                       RandomPtr random,
                        std::list<scrimmage_proto::ShapePtr> &shapes,
                        std::list<EntityInteractionPtr> &ent_inters);
 
