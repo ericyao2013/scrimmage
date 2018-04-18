@@ -84,6 +84,7 @@ class External {
     bool create_interactions();
 
     double min_motion_dt = 1;
+    VariableIO vars;
     std::mutex mutex;
     DelayedTask update_contacts_task;
     std::function<void(std::list<EntityPtr>&)> adjust_ents_func;

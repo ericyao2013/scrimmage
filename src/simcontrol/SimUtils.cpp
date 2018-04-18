@@ -39,6 +39,13 @@
 #include <scrimmage/simcontrol/SimUtils.h>
 
 #include <iostream>
+#include <iomanip>
+
+#include <boost/range/algorithm/set_algorithm.hpp>
+#include <boost/range/adaptor/map.hpp>
+
+namespace br = boost::range;
+namespace ba = boost::adaptors;
 
 namespace scrimmage {
 
@@ -121,6 +128,38 @@ void run_callbacks(PluginPtr plugin) {
         for (auto msg : sub->pop_msgs<MessageBase>()) {
             sub->accept(msg);
         }
+    }
+}
+
+bool verify_io_connection(VariableIO &output, VariableIO &input) {
+    std::vector<std::string> mismatched_keys;
+    br::set_difference(
+        input.declared_input_variables(),
+        output.declared_output_variables(),
+        std::back_inserter(mismatched_keys));
+
+    return mismatched_keys.empty();
+}
+
+void print_io_error(const std::string &in_name, const std::string &out_name, VariableIO &v) {
+    auto keys = v.input_variable_index() | ba::map_keys;
+    std::cout << "First, place the following in its initializer: " << std::endl;
+    for (const std::string &key : keys) {
+        std::cout << "    " << key << "_idx_ = vars_.declare("
+            << std::quoted(key) << ", VariableIO::Direction::Out);"
+            << std::endl;
+    }
+
+    std::cout << "Second, place the following in its step function: " << std::endl;
+    for (const std::string &key : keys) {
+        std::cout << "    vars_.output(" << key << "_idx_, value_to_output);" << std::endl;
+    }
+    std::cout << "where value_to_output is what you want " << in_name
+        << " to receive as its input." << std::endl;
+
+    std::cout << "Third, place following in the class declaration: " << std::endl;
+    for (const std::string &key : keys) {
+        std::cout << "    uint8_t " << key << "_idx_ = 0;" << std::endl;
     }
 }
 } // namespace scrimmage
