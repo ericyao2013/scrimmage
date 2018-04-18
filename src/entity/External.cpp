@@ -56,6 +56,7 @@
 #include <boost/range/adaptor/filtered.hpp>
 #include <boost/range/adaptor/transformed.hpp>
 #include <boost/range/algorithm/for_each.hpp>
+#include <boost/range/algorithm/copy.hpp>
 
 using std::endl;
 using std::cout;
@@ -139,11 +140,15 @@ bool External::create_entity(int max_entities, int entity_id,
         std::cout << "External::create_entity() failed on entity_->init()" << std::endl;
         return false;
     } else if (!verify_io_connection(entity_->controller()->vars(), vars)) {
+        auto ctrl = entity_->controller();
         std::cout << "VariableIO Error: "
-            << std::quoted(entity_->controller()->name())
+            << ctrl->name()
             << " does not provide inputs required by the External class."
             << std::endl;
-        print_io_error("External", entity_->controller()->name(), vars);
+        print_io_error("External", ctrl->name(), vars);
+        std::cout << ctrl->name() << " currently provides the following: ";
+        br::copy(ctrl->vars().output_variable_index() | ba::map_keys,
+            std::ostream_iterator<std::string>(std::cout, ", "));
         return false;
     }
 
