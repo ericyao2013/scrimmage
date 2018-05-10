@@ -130,6 +130,8 @@ class Plugin : public std::enable_shared_from_this<Plugin> {
     // cppcheck-suppress passedByValue
     void set_time(std::shared_ptr<const Time> time) { time_ = time; }
 
+    bool print_err_on_exit = true;
+
  protected:
     std::string name_;
     EntityPtr parent_;
