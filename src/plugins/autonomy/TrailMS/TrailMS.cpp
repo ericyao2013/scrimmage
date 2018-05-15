@@ -115,7 +115,7 @@ bool TrailMS::step_autonomy(double t, double dt) {
         sc::set(shape->mutable_center(), trail_point);
         shape->set_opacity(1.0);
         shape->set_radius(0.5);
-        shapes_.push_back(shape);
+        draw_shape(shape);
     }
 
     return true;

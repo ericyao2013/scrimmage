@@ -232,7 +232,7 @@ bool Boids::step_autonomy(double t, double dt) {
             shape->set_radius(sphere_of_influence_);
             set(shape->mutable_center(), state_->pos());
             set(shape->mutable_color(), 0, 255, 0);
-            shapes_.push_back(shape);
+            draw_shape(shape);
 
             // Draw resultant vector:
             ShapePtr arrow(new scrimmage_proto::Shape);
@@ -241,7 +241,7 @@ bool Boids::step_autonomy(double t, double dt) {
             arrow->set_opacity(0.75);
             add_point(arrow, state_->pos());
             add_point(arrow, vel_result + state_->pos());
-            shapes_.push_back(arrow);
+            draw_shape(arrow);
         }
     } else {
         velocity_controller(v_goal);

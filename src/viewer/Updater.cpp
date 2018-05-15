@@ -346,13 +346,12 @@ bool Updater::update_scale() {
 bool Updater::update_shapes() {
     // Remove past frames shapes that have reached time-to-live, if they
     // are not persistent
-    auto it = shapes_.begin();
-    while (it != shapes_.end()) {
-        scrimmage_proto::Shape &s = std::get<0>(*it);
+    for (auto it = shapes_.begin(); it != shapes_.end();) {
+        scrimmage_proto::Shape &s = std::get<0>(it->second);
         s.set_ttl(s.ttl()-1);
         if (!s.persistent() && s.ttl() <= 0) {
-            renderer_->RemoveActor(std::get<1>(*it));
-            shapes_.erase(it++);
+            renderer_->RemoveActor(std::get<1>(it->second));
+            it = shapes_.erase(it);
         } else {
             ++it;
         }
@@ -363,45 +362,54 @@ bool Updater::update_shapes() {
 bool Updater::draw_shapes(scrimmage_proto::Shapes &shapes) {
     // Display new shapes
     for (int i = 0; i < shapes.shape_size(); i++) {
+        sp::Shape shape = shapes.shape(i);
 
-        // Create the mapper and actor that each shape will use
-        vtkSmartPointer<vtkPolyDataMapper> mapper =
-            vtkSmartPointer<vtkPolyDataMapper>::New();
-        vtkSmartPointer<vtkActor> actor =
-            vtkSmartPointer<vtkActor>::New();
+        // Does this shape ID exist already?
+        bool new_shape = false;
+        bool shape_update = false;
+        vtkSmartPointer<vtkActor> actor;
 
-        const sp::Shape shape = shapes.shape(i);
-        bool status = false;
-        if (shape.type() == sp::Shape::Triangle) {
-            status = draw_triangle(shape, actor, mapper);
-        } else if (shape.type() == sp::Shape::Arrow) {
-            status = draw_arrow(shape, actor, mapper);
-        } else if (shape.type() == sp::Shape::Cone) {
-            status = draw_cone(shape, actor, mapper);
-        } else if (shape.type() == sp::Shape::Line) {
-            status = draw_line(shape, actor, mapper);
-        } else if (shape.type() == sp::Shape::Polygon) {
-            status = draw_polygon(shape, actor, mapper);
-        } else if (shape.type() == sp::Shape::Polydata) {
-            status = draw_polydata(shape, actor, mapper);
-        } else if (shape.type() == sp::Shape::Plane) {
-            status = draw_plane(shape, actor, mapper);
-        } else if (shape.type() == sp::Shape::Cube) {
-            status = draw_cube(shape, actor, mapper);
-        } else if (shape.type() == sp::Shape::Pointcloud) {
-            status = draw_pointcloud(shape, actor, mapper);
-        } else if (shape.type() == sp::Shape::Circle) {
-            status = draw_circle(shape, actor, mapper);
-        } else if (shape.type() == sp::Shape::Sphere) {
-            status = draw_sphere(shape, actor, mapper);
-        } else if (shape.type() == sp::Shape::Text) {
-            status = draw_text(shape, actor, mapper);
+        auto it = shapes_.find(shape.id());
+        if (it != shapes_.end()) {
+            actor = std::get<1>(it->second);
+            shape_update = true;
         } else {
-            status = draw_sphere(shape, actor, mapper);
+            // Create the mapper and actor that each shape will use
+            vtkSmartPointer<vtkPolyDataMapper> mapper =
+                vtkSmartPointer<vtkPolyDataMapper>::New();
+            actor = vtkSmartPointer<vtkActor>::New();
+
+            if (shape.type() == sp::Shape::Triangle) {
+                new_shape = draw_triangle(shape, actor, mapper);
+            } else if (shape.type() == sp::Shape::Arrow) {
+                new_shape = draw_arrow(shape, actor, mapper);
+            } else if (shape.type() == sp::Shape::Cone) {
+                new_shape = draw_cone(shape, actor, mapper);
+            } else if (shape.type() == sp::Shape::Line) {
+                new_shape = draw_line(shape, actor, mapper);
+            } else if (shape.type() == sp::Shape::Polygon) {
+                new_shape = draw_polygon(shape, actor, mapper);
+            } else if (shape.type() == sp::Shape::Polydata) {
+                new_shape = draw_polydata(shape, actor, mapper);
+            } else if (shape.type() == sp::Shape::Plane) {
+                new_shape = draw_plane(shape, actor, mapper);
+            } else if (shape.type() == sp::Shape::Cube) {
+                new_shape = draw_cube(shape, actor, mapper);
+            } else if (shape.type() == sp::Shape::Pointcloud) {
+                new_shape = draw_pointcloud(shape, actor, mapper);
+            } else if (shape.type() == sp::Shape::Circle) {
+                new_shape = draw_circle(shape, actor, mapper);
+            } else if (shape.type() == sp::Shape::Sphere) {
+                new_shape = draw_sphere(shape, actor, mapper);
+            } else if (shape.type() == sp::Shape::Text) {
+                new_shape = draw_text(shape, actor, mapper);
+            } else {
+                new_shape = draw_sphere(shape, actor, mapper);
+            }
         }
 
         // Only add the actor if it was correctly constructed
-        if (status) {
+        if (shape_update || new_shape) {
             double opacity = shape.opacity();
             if (opacity < 0.00001) {
                 actor->GetProperty()->SetOpacity(1.0);
@@ -411,16 +419,21 @@ bool Updater::draw_shapes(scrimmage_proto::Shapes &shapes) {
             actor->GetProperty()->SetColor(shape.color().r()/255.0,
                                            shape.color().g()/255.0,
                                            shape.color().b()/255.0);
-            renderer_->AddActor(actor);
-
-            shapes_.push_back(std::make_pair(shape, actor));
 
             // Since protobufs default value for int is 0, if the ttl is 0
             // at this point, set ttl to 1. We are creating new shapes
             // here, so it doesn't make sense for a shape to have a ttl
             // less than 1 here.
-            if (std::get<0>(shapes_.back()).ttl() <= 0) {
-                std::get<0>(shapes_.back()).set_ttl(1);
+            if (shape.ttl() <= 0) {
+                shape.set_ttl(1);
+            }
+
+            if (new_shape) {
+                renderer_->AddActor(actor);
+                shapes_[shape.id()] = std::make_pair(shape, actor);
+            }
+            if (shape_update) {
+                std::get<0>(it->second) = shape;
             }
         }
     }

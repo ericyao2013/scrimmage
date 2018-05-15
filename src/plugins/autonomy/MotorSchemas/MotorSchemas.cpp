@@ -234,9 +234,11 @@ bool MotorSchemas::step_autonomy(double t, double dt) {
         }
 
         if (show_shapes_) {
-            // Grab the behavior shapes:
-            shapes_.insert(shapes_.end(), behavior->shapes().begin(),
-                           behavior->shapes().end());
+            // TODO HERE
+            // // Grab the behavior shapes:
+            // std::for_each(
+            //     behavior->shapes().begin(),
+            //                behavior->shapes().end());
         }
         behavior->shapes().clear();
     }
@@ -264,7 +266,7 @@ bool MotorSchemas::step_autonomy(double t, double dt) {
         arrow->set_opacity(0.75);
         sc::add_point(arrow, state_->pos());
         sc::add_point(arrow, vel_result + state_->pos());
-        shapes_.push_back(arrow);
+        draw_shape(arrow);
     }
 
     return true;

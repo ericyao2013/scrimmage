@@ -143,7 +143,7 @@ bool MapGen2D::init(std::map<std::string, std::string> &mission_params,
         sc::set(wall->mutable_xyz_lengths(), width, height, wall_height_);
         sc::set(wall->mutable_quat(), quat);
 
-        shapes_.push_back(wall);
+        draw_shape(wall);
 
 
         sp::Shape *shape = msg->data.add_shape();

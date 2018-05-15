@@ -266,7 +266,8 @@ bool SimControl::init() {
             sc::set(base->mutable_color(), kv.second.color);
             base->set_radius(kv.second.radii[i]);
             base->set_persistent(true);
-            shapes_[0].push_back(base);
+            //shapes_[0].push_back(base);
+            sim_plugin_->draw_shape(base);
             i++;
         }
     }

@@ -244,7 +244,7 @@ bool Multirotor::step(double time, double dt) {
         Eigen::Vector3d color(255, 255, 0);
         sc::set(shape->mutable_color(), color[0], color[1], color[2]);
         sc::add_point(shape, state_->pos() + state_->vel() );
-        shapes_.push_back(shape);
+        draw_shape(shape);
     }
 
 
@@ -257,7 +257,7 @@ bool Multirotor::step(double time, double dt) {
         Eigen::Vector3d color(0, 255, 255);
         sc::set(shape->mutable_color(), color[0], color[1], color[2]);
         sc::add_point(shape, state_->pos() + state_->ang_vel()*10 );
-        shapes_.push_back(shape);
+        draw_shape(shape);
     }
 
     if (write_csv_) {

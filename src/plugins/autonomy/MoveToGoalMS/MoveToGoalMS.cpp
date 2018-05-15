@@ -154,7 +154,7 @@ bool MoveToGoalMS::step_autonomy(double t, double dt) {
     shape->set_radius(5);
     sc::set(shape->mutable_center(), track_point);
     sc::set(shape->mutable_color(), 0, 0, 0);
-    shapes_.push_back(shape);
+    draw_shape(shape);
 
     // check if within waypoint tolerance
     if ((state_->pos() - wp).norm() <= curr_wp_lla.position_tolerance()) {

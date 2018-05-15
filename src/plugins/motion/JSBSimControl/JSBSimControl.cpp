@@ -325,7 +325,7 @@ bool JSBSimControl::step(double time, double dt) {
         Eigen::Vector3d color(255, 255, 0);
         sc::set(shape->mutable_color(), color[0], color[1], color[2]);
         sc::add_point(shape, state_->pos() + state_->vel()*drawVel_ );
-        shapes_.push_back(shape);
+        draw_shape(shape);
     }
 
 
@@ -338,7 +338,7 @@ bool JSBSimControl::step(double time, double dt) {
         Eigen::Vector3d color(0, 255, 255);
         sc::set(shape->mutable_color(), color[0], color[1], color[2]);
         sc::add_point(shape, state_->pos() + state_->ang_vel()*drawAngVel_ );
-        shapes_.push_back(shape);
+        draw_shape(shape);
     }
 
     // draw acceleration
@@ -350,7 +350,7 @@ bool JSBSimControl::step(double time, double dt) {
         Eigen::Vector3d color(0, 0, 255);
         sc::set(shape->mutable_color(), color[0], color[1], color[2]);
         sc::add_point(shape, state_->pos() + a_ENU*drawAcc_ );
-        shapes_.push_back(shape);
+        draw_shape(shape);
     }
 
 

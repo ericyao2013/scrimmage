@@ -172,7 +172,7 @@ void WaypointGenerator::draw_waypoints(WaypointList &wp_list) {
         sc::set(shape->mutable_center(), x, y, z);
         sc::set(shape->mutable_color(), waypoint_color_[0], waypoint_color_[1],
                 waypoint_color_[2]);
-        shapes_.push_back(shape);
+        draw_shape(shape);
     }
 }
 } // namespace autonomy

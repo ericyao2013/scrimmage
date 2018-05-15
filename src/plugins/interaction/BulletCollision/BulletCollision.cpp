@@ -273,7 +273,7 @@ bool BulletCollision::step_entity_interaction(std::list<sc::EntityPtr> &ents,
                         arrow->set_opacity(1.0);
                         sc::add_point(arrow, sensor_pos_w);
                         sc::add_point(arrow, hit_point);
-                        shapes_.push_back(arrow);
+                        draw_shape(arrow);
                     }
                 } else {
                     msg->data.points.push_back(RayTrace::PCPoint(original_ray, 255));
@@ -284,7 +284,7 @@ bool BulletCollision::step_entity_interaction(std::list<sc::EntityPtr> &ents,
                         arrow->set_opacity(0.5);
                         sc::add_point(arrow, sensor_pos_w);
                         sc::add_point(arrow, ray_w);
-                        shapes_.push_back(arrow);
+                        draw_shape(arrow);
                     }
                 }
             }

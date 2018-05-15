@@ -36,11 +36,15 @@
 #include <scrimmage/pubsub/Publisher.h>
 #include <scrimmage/pubsub/PubSub.h>
 #include <scrimmage/common/Time.h>
+#include <scrimmage/proto/Shape.pb.h>
+#include <scrimmage/proto/ProtoConversions.h>
 
 #include <string>
 #include <memory>
 
 namespace scrimmage {
+
+unsigned int Plugin::shape_id_ = 1;
 
 Plugin::Plugin() : name_("Plugin"), parent_(std::make_shared<Entity>()),
                    transform_(std::make_shared<State>()),
@@ -81,6 +85,13 @@ PublisherPtr Plugin::advertise(std::string network_name, std::string topic,
 PublisherPtr Plugin::advertise(std::string network_name, std::string topic) {
     return pubsub_->advertise(network_name, topic, 0, false,
                               shared_from_this());
+}
+
+void Plugin::draw_shape(scrimmage_proto::ShapePtr s) {
+    if (s->id() == 0) {
+        s->set_id(shape_id_++);
+    }
+    shapes_.push_back(s);
 }
 
 } // namespace scrimmage

@@ -53,6 +53,7 @@
 #include <limits>
 #include <list>
 #include <map>
+#include <unordered_map>
 #include <utility>
 #include <string>
 
@@ -252,7 +253,7 @@ class Updater : public vtkCommand {
 
     std::map<int, std::shared_ptr<scrimmage_proto::ContactVisual> > contact_visuals_;
 
-    std::list<std::pair<scrimmage_proto::Shape, vtkSmartPointer<vtkActor>>> shapes_;
+    std::unordered_map<unsigned int, std::pair<scrimmage_proto::Shape, vtkSmartPointer<vtkActor>>> shapes_;
 
     std::map<std::string, std::shared_ptr<scrimmage_proto::UTMTerrain> > terrain_map_;
     std::map<std::string, std::shared_ptr<scrimmage_proto::ContactVisual>> contact_visual_map_;
