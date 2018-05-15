@@ -169,11 +169,8 @@ bool Straight::step_autonomy(double t, double dt) {
             }
         } else if (kv.first == "NoisyContacts0") {
             auto msg = kv.second->sense<std::list<sc::Contact>>(t);
-            //shapes_.insert(shapes_.end(), kv.second->shapes().begin(), kv.second->shapes().end());
-            for (auto it = kv.second->shapes().begin();
-                 it != kv.second->shapes().end(); it++) {
-                draw_shape(*it);
-            }
+            std::for_each(kv.second->shapes().begin(), kv.second->shapes().end(),
+                  [&](auto s) { this->draw_shape(s); });
             kv.second->shapes().clear();
         } else if (kv.first == "AirSimSensor0") {
 #if (ENABLE_OPENCV == 1 && ENABLE_AIRSIM == 1)

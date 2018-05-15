@@ -200,8 +200,6 @@ bool BulletCollision::init(std::map<std::string, std::string> &mission_params,
 
 bool BulletCollision::step_entity_interaction(std::list<sc::EntityPtr> &ents,
                                               double t, double dt) {
-    shapes_.clear();
-
     // Update positions of all objects
     for (auto &kv : objects_) {
         sc::EntityPtr &ent = (*id_to_ent_map_)[kv.first];

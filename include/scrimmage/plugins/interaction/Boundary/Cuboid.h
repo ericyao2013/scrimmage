@@ -34,6 +34,7 @@
 #define INCLUDE_SCRIMMAGE_PLUGINS_INTERACTION_BOUNDARY_CUBOID_H_
 
 #include <scrimmage/plugins/interaction/Boundary/BoundaryBase.h>
+#include <scrimmage/math/Quaternion.h>
 
 #include <Eigen/Dense>
 
@@ -51,6 +52,30 @@ namespace interaction {
 class Cuboid : public BoundaryBase {
  public:
     Cuboid() {
+    }
+
+    Cuboid(Eigen::Vector3d center, double x_length, double y_width,
+           double z_height, scrimmage::Quaternion quat) {
+        double x = x_length / 2.0;
+        double y = y_width / 2.0;
+        double z = z_height / 2.0;
+
+        std::vector<Eigen::Vector3d> points;
+        points.push_back(Eigen::Vector3d(x, y, -z));
+        points.push_back(Eigen::Vector3d(-x, y, -z));
+        points.push_back(Eigen::Vector3d(-x, -y, -z));
+        points.push_back(Eigen::Vector3d(x, -y, -z));
+        points.push_back(Eigen::Vector3d(x, y, z));
+        points.push_back(Eigen::Vector3d(-x, y, z));
+        points.push_back(Eigen::Vector3d(-x, -y, z));
+        points.push_back(Eigen::Vector3d(x, -y, z));
+
+        // TODO: Handle rotation
+
+        for (Eigen::Vector3d &p : points) {
+            p += center;
+        }
+        set_points(points);
     }
 
     void compute_dots() {

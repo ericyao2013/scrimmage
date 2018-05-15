@@ -149,10 +149,11 @@ class Plugin : public std::enable_shared_from_this<Plugin> {
 
     static unsigned int shape_id_;
 
- public:
-    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
  private:
     std::list<scrimmage_proto::ShapePtr> shapes_;
+
+ public:
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
 
 using PluginPtr = std::shared_ptr<Plugin>;

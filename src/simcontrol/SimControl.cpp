@@ -266,7 +266,6 @@ bool SimControl::init() {
             sc::set(base->mutable_color(), kv.second.color);
             base->set_radius(kv.second.radii[i]);
             base->set_persistent(true);
-            //shapes_[0].push_back(base);
             sim_plugin_->draw_shape(base);
             i++;
         }
@@ -281,6 +280,7 @@ bool SimControl::init() {
     pub_ent_int_exit_ = sim_plugin_->advertise("GlobalNetwork", "EntityInteractionExit");
     pub_no_teams_ = sim_plugin_->advertise("GlobalNetwork", "NoTeamsPresent");
     pub_one_team_ = sim_plugin_->advertise("GlobalNetwork", "OneTeamPresent");
+    pub_world_point_clicked_ = sim_plugin_->advertise("GlobalNetwork", "WorldPointClicked");
 
     // Get the list of "metrics" plugins
     SimUtilsInfo info;
@@ -935,6 +935,19 @@ void SimControl::run_check_network_msgs() {
             control.erase(it++);
         }
         incoming_interface_->gui_msg_mutex.unlock();
+    }
+
+    if (incoming_interface_->world_point_clicked_msg_update()) {
+        incoming_interface_->world_point_clicked_msg_mutex.lock();
+        auto &msg_list = incoming_interface_->world_point_clicked_msg();
+        auto it = msg_list.begin();
+        while (it != msg_list.end()) {
+            auto msg = std::make_shared<Message<sp::WorldPointClicked>>();
+            msg->data = *it;
+            pub_world_point_clicked_->publish(msg);
+            msg_list.erase(it++);
+        }
+        incoming_interface_->world_point_clicked_msg_mutex.unlock();
     }
 }
 

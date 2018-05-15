@@ -154,6 +154,9 @@ class Updater : public vtkCommand {
     void inc_follow_offset();
     void dec_follow_offset();
 
+    void world_point_clicked(const double &x, const double &y,
+                             const double &z);
+
     void reset_scale();
 
     void set_reset_camera();

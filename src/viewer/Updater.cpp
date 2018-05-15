@@ -1215,6 +1215,14 @@ void Updater::request_cached() {
     gui_msg_.set_request_cached(false);
 }
 
+void Updater::world_point_clicked(const double &x, const double &y,
+                                  const double &z) {
+    scrimmage_proto::WorldPointClicked msg;
+    sc::set(msg.mutable_point(), x, y, z);
+    msg.set_name("WorldPointClicked");
+    outgoing_interface_->send_world_point_clicked_msg(msg);
+}
+
 void Updater::toggle_helpmenu() {
     std::stringstream stream_helpkeys, stream_helpvalues;
         show_helpmenu_ = !show_helpmenu_;

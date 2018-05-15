@@ -183,8 +183,6 @@ void MotorSchemas::init(std::map<std::string, std::string> &params) {
 }
 
 bool MotorSchemas::step_autonomy(double t, double dt) {
-    shapes_.clear();
-
     // Run all sub behaviors
     double vec_w_gain_sum = 0;
     Eigen::Vector3d vec_w_gain(0, 0, 0);
@@ -214,8 +212,8 @@ bool MotorSchemas::step_autonomy(double t, double dt) {
         }
 
         if (desired_vector.hasNaN()) {
-            cout << "Behavior error: " << behavior->name() << endl;
-            cout << "desired vector has NaN" << endl;
+            cout << "Behavior error: " << behavior->name()
+                 << ", desired vector has NaN" << endl;
             continue;
         }
 
@@ -234,11 +232,10 @@ bool MotorSchemas::step_autonomy(double t, double dt) {
         }
 
         if (show_shapes_) {
-            // TODO HERE
-            // // Grab the behavior shapes:
-            // std::for_each(
-            //     behavior->shapes().begin(),
-            //                behavior->shapes().end());
+             std::for_each(behavior->shapes().begin(),
+                           behavior->shapes().end(), [&](auto &s) {
+                               this->draw_shape(s);
+                           });
         }
         behavior->shapes().clear();
     }

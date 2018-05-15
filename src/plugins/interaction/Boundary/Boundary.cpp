@@ -134,12 +134,8 @@ bool Boundary::init(std::map<std::string, std::string> &mission_params,
             color = {255, 0, 0};
         }
         boundary_->set_visual(color[0], color[1], color[2], opacity);
-        //shapes_.insert(shapes_.end(), boundary_->shapes().begin(),
-        //               boundary_->shapes().end());
-        for (auto it = boundary_->shapes().begin();
-             it != boundary_->shapes().end(); it++) {
-            draw_shape(*it);
-        }
+        std::for_each(boundary_->shapes().begin(), boundary_->shapes().end(),
+                      [&](auto s) { this->draw_shape(s); });
     }
 
     std::string network_name = sc::get("network_name", plugin_params, "GlobalNetwork");

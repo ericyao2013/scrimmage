@@ -96,6 +96,20 @@ void MoveToGoalMS::init(std::map<std::string, std::string> &params) {
         wp_idx_ = 0;
         prev_wp_idx_ = 0;
         cycles_ = 0;
+        returning_stage_ = false;
+
+        // Filter the waypoint list to ensure that two waypoints in succession
+        // are not equal, otherwise, the line following will produce NaN
+        auto it_prev = wp_list_.waypoints().begin();
+        auto it = it_prev + 1;
+        while (it != wp_list_.waypoints().end()) {
+            if (*it == *it_prev) {
+                it = wp_list_.waypoints().erase(it);
+            } else {
+                ++it;
+                ++it_prev;
+            }
+        }
     };
     subscribe<WaypointList>("LocalNetwork", "WaypointList", wp_list_cb);
 }
@@ -147,7 +161,7 @@ bool MoveToGoalMS::step_autonomy(double t, double dt) {
 
     desired_vector_ = (track_point - state_->pos());
 
-    // Draw the sphere of influence
+    // Draw the track point
     auto shape = std::make_shared<scrimmage_proto::Shape>();
     shape->set_type(scrimmage_proto::Shape::Sphere);
     shape->set_opacity(1.0);
